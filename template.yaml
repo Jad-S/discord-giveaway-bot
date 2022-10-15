@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM Template for discord-giveaway-commands
+
+Globals:
+  Function:
+    Timeout: 12
+
+Parameters:
+  rafflespreadsheetid:
+    Type: String
+    Description: Raffle Google Spreadsheet ID
+  guessspreadsheetid:
+    Type: String
+    Description: Guess Google Spreadsheet ID
+  spreadsheetrange:
+    Type: String
+    Description: Google Spreadsheet Range
+  discordpublickey:
+    Type: String
+    Description: Discord Bot Public Key
+  s3bucketname:
+    Type: String
+    Description: S3 Bucket Name
+    
+Resources:
+  DiscordGiveawayCommandsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handler/
+      Handler: handler
+      Runtime: go1.x
+      Architectures:
+        - x86_64
+      Events:
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /discord/giveaways
+            Method: POST
+      Environment:
+        Variables:
+          RAFFLE_SPREADSHEET_ID: !Ref rafflespreadsheetid
+          GUESS_SPREADSHEET_ID: !Ref guessspreadsheetid
+          SPREADSHEET_RANGE: !Ref spreadsheetrange
+          DISCORD_PUBLIC_KEY: !Ref discordpublickey
+          S3_BUCKET_NAME: !Ref s3bucketname
+
+Outputs:
+  DiscordGiveawayCommandsAPI:
+    Description: "API Gateway endpoint URL for Prod environment for First Function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/discord/giveaways"
+  DiscordGiveawayCommandsFunction:
+    Description: "Discord Raffle Command Lambda Function ARN"
+    Value: !GetAtt DiscordGiveawayCommandFunction.Arn
