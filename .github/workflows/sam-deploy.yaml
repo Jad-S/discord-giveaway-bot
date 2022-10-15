@@ -1,0 +1,92 @@
+name: Deploy SAM
+
+on:
+  push:
+    branches:
+      - 'main'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  OIDC_ROLE: arn:aws:iam::569153149405:role/OIDC_role
+  SAM_TEMPLATE: template.yaml
+
+  PROD_STACK_NAME: discord-giveaway-commands-prod
+  PROD_ARTIFACTS_BUCKET: discord-giveaway-commands-prod-artifacts
+  PROD_REGION: us-east-1
+
+  RAFFLE_SPREADSHEET_ID: ${{ secrets.RAFFLE_SPREADSHEET_ID }}
+  GUESS_SPREADSHEET_ID: ${{ secrets.GUESS_SPREADSHEET_ID }}
+  SPREADSHEET_RANGE: ${{ secrets.SPREADSHEET_RANGE }}
+  DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+jobs:
+  build-and-package:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v1
+
+      - name: Build resources
+        run: sam build --template ${SAM_TEMPLATE} --use-container
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.PROD_REGION }}
+          role-to-assume: ${{ env.OIDC_ROLE }}
+          role-session-name: prod-packaging
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Upload artifacts to production artifact buckets
+        run: |
+          sam package \
+            --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
+            --region ${PROD_REGION} \
+            --output-template-file packaged-prod.yaml
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: packaged-prod.yaml
+          path: packaged-prod.yaml
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: aws-actions/setup-sam@v1
+      - uses: actions/download-artifact@v2
+        with:
+          name: packaged-prod.yaml
+
+      - name: Assume the prod OIDC role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.PROD_REGION }}
+          role-to-assume: ${{ env.OIDC_ROLE }}
+          role-session-name: prod-deployment
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Deploy to production account
+        run: |
+          sam deploy --stack-name ${PROD_STACK_NAME} \
+            --template packaged-prod.yaml \
+            --capabilities CAPABILITY_IAM \
+            --region ${PROD_REGION} \
+            --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
+            --no-fail-on-empty-changeset \
+            --role-arn ${OIDC_ROLE} \
+            --tags platform=discord \
+                   project=aws-discord-giveaway-command-endpoint \
+                   type=commission \
+            --parameter-overrides rafflespreadsheetid=${RAFFLE_SPREADSHEET_ID} guessspreadsheetid=${GUESS_SPREADSHEET_ID} spreadsheetrange=${SPREADSHEET_RANGE} discordpublickey=${DISCORD_PUBLIC_KEY} s3bucketname=${S3_BUCKET_NAME}
