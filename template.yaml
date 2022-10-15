@@ -28,7 +28,7 @@ Resources:
   DiscordGiveawayCommandsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: handler/
+      CodeUri: cmd/
       Handler: handler
       Runtime: go1.x
       Architectures:
@@ -53,4 +53,4 @@ Outputs:
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/discord/giveaways"
   DiscordGiveawayCommandsFunction:
     Description: "Discord Raffle Command Lambda Function ARN"
-    Value: !GetAtt DiscordGiveawayCommandFunction.Arn
+    Value: !GetAtt DiscordGiveawayCommandsFunction.Arn
