@@ -27,9 +27,11 @@ Parameters:
 Resources:
   DiscordGiveawayCommandsFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
     Properties:
-      CodeUri: cmd/
-      Handler: handler
+      CodeUri: .
+      Handler: handleRequest
       Runtime: go1.x
       Architectures:
         - x86_64

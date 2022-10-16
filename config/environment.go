@@ -2,7 +2,6 @@ package config
 
 import (
 	sh "giveaway/internal/sheets"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"os"
