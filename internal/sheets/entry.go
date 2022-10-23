@@ -40,13 +40,13 @@ func NewRaffleEntry(client *sheets.Service, sheet Spreadsheet, body discord.Body
 	discordId := body.Member.User.Id
 	discordName := body.Member.User.Name
 
-	twitchName := body.Data.Entries[0].Value
+	dliveName := body.Data.Entries[0].Value
 	casinoName := body.Data.Entries[1].Value
 
 	// new entry details
 	entry := &sheets.ValueRange{
 		Values: [][]interface{}{
-			{discordId, twitchName, casinoName, discordName},
+			{discordId, dliveName, casinoName, discordName},
 		},
 	}
 
@@ -64,13 +64,13 @@ func NewGuessEntry(client *sheets.Service, sheet Spreadsheet, body discord.Body)
 	discordId := body.Member.User.Id
 	discordName := body.Member.User.Name
 
-	twitchName := body.Data.Entries[0].Value
+	dliveName := body.Data.Entries[0].Value
 	guessNumber := body.Data.Entries[1].Value
 
 	// new entry details
 	entry := &sheets.ValueRange{
 		Values: [][]interface{}{
-			{discordId, twitchName, guessNumber, discordName},
+			{discordId, dliveName, guessNumber, discordName},
 		},
 	}
 
